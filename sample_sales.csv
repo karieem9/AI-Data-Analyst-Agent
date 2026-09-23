@@ -1,0 +1,21 @@
+date,region,department,product,units_sold,revenue,cost
+2026-06-01,North,Sales,Widget A,12,1200,700
+2026-06-01,South,Sales,Widget B,8,960,550
+2026-06-02,North,Marketing,Widget A,5,500,300
+2026-06-02,East,Sales,Widget C,20,3000,1800
+2026-06-03,South,Sales,Widget A,15,1500,900
+2026-06-03,West,Support,Widget B,3,360,200
+2026-06-04,North,Sales,Widget C,10,1500,900
+2026-06-04,East,Marketing,Widget A,7,700,420
+2026-06-05,South,Sales,Widget B,18,2160,1200
+2026-06-05,West,Sales,Widget C,,0,0
+2026-06-06,North,Support,Widget A,9,900,540
+2026-06-06,East,Sales,Widget B,14,1680,950
+2026-06-07,South,Marketing,Widget C,6,900,540
+2026-06-07,West,Sales,Widget A,11,1100,660
+2026-06-08,North,Sales,Widget B,22,2640,1500
+2026-06-08,East,Support,Widget C,4,600,360
+2026-06-09,South,Sales,Widget A,16,1600,960
+2026-06-09,West,Marketing,Widget B,9,1080,600
+2026-06-10,North,Sales,Widget C,13,1950,1170
+2026-06-10,East,Sales,Widget A,19,1900,1140
