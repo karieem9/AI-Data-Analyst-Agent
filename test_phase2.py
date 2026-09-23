@@ -17,6 +17,10 @@ questions = [
     # Regression guard: this used to false-positive as a "modify data" request
     # because of the word "drop" -- must compute a real answer, not refuse.
     "Why did units sold drop on 2026-06-10?",
+    # Regression guard: advisory questions ("what should I do") used to
+    # false-positive as a refusal case too, which then caused the
+    # explanation step to hallucinate a fake narrative to compensate.
+    "What should I do to increase revenue?",
 ]
 
 for q in questions:
