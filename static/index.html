@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Data Analyst Agent</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="app">
+
+  <aside class="sidebar">
+    <div class="brand"><span class="brand-mark">&#9670;</span> Data Analyst Agent</div>
+
+    <div class="dataset-card">
+      <div class="dataset-empty" id="datasetEmpty">
+        <p>No dataset loaded</p>
+        <label class="upload-btn">
+          Upload CSV / Excel
+          <input type="file" id="fileInput" accept=".csv,.xlsx,.xls" hidden>
+        </label>
+      </div>
+      <div class="dataset-info" id="datasetInfo" hidden>
+        <p class="dataset-name" id="datasetName"></p>
+        <p class="dataset-meta" id="datasetMeta"></p>
+        <label class="upload-btn small">
+          Replace file
+          <input type="file" id="fileInputReplace" accept=".csv,.xlsx,.xls" hidden>
+        </label>
+      </div>
+    </div>
+
+    <div class="profile-panel" id="profilePanel" hidden>
+      <p class="panel-label">Columns</p>
+      <div class="profile-list" id="profileList"></div>
+    </div>
+  </aside>
+
+  <main class="chat-main">
+    <div class="chat-thread" id="chatThread">
+      <div class="welcome" id="welcome">
+        <div class="orb"></div>
+        <h1>Ask your data anything</h1>
+        <p>Upload a CSV or Excel file, then ask a question in plain English.</p>
+      </div>
+    </div>
+
+    <form class="composer" id="composerForm">
+      <input type="text" id="questionInput" placeholder="Upload a dataset to get started" autocomplete="off" disabled>
+      <button type="submit" id="sendBtn" disabled>Ask</button>
+    </form>
+  </main>
+
+  <aside class="history-panel">
+    <div class="history-head">History</div>
+    <input type="text" id="historySearch" placeholder="Search questions" class="history-search">
+    <div class="history-list" id="historyList">
+      <p class="history-empty" id="historyEmpty">No questions yet.</p>
+    </div>
+  </aside>
+
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

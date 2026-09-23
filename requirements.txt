@@ -1,7 +1,9 @@
+fastapi==0.141.1
 openai==3.19.0
 openpyxl==3.1.5
 pandas==3.0.6
 plotly==7.1.0
 python-dotenv==1.2.3
+python-multipart==0.0.32
 SQLAlchemy==2.0.54
-streamlit==1.64.0
+uvicorn==0.53.0
