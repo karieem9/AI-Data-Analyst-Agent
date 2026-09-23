@@ -14,6 +14,9 @@ questions = [
     "What is the average revenue per product?",
     "Which region had the lowest revenue?",
     "Show revenue by date as a trend.",
+    # Regression guard: this used to false-positive as a "modify data" request
+    # because of the word "drop" -- must compute a real answer, not refuse.
+    "Why did units sold drop on 2026-06-10?",
 ]
 
 for q in questions:

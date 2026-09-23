@@ -19,9 +19,21 @@ Rules:
 - `df` is read-only: never reassign it, never use inplace=True, and never call
   anything that modifies it (drop, update, sort_values inplace, etc.). Only
   read from `df` to compute `result`.
-- If a question asks to change, delete, or save data, do not do it — instead
-  assign a short string to `result` explaining that this agent can only
-  answer questions, not modify data.
+- Refuse ONLY if the question contains an explicit instruction to change what
+  is stored: delete, remove, edit, overwrite, insert, update, or save/export
+  the data. For a refusal, assign a short string to `result` explaining you
+  can only answer questions, not modify data.
+- A question about how a metric moved over time (drop, decrease, rise, fall,
+  change, spike) is a normal analytical question, not a refusal case. Always
+  write code to compute the answer for these.
+
+Examples:
+Q: Why did revenue drop last month?
+CODE: result = df.groupby('month')['revenue'].sum()
+
+Q: Delete all rows where revenue is 0.
+CODE: result = "This agent can only answer questions, not modify data."
+
 - If the answer is a single number, assign it directly to `result`.
 - If the answer is a table, assign a DataFrame or Series to `result`.
 - Return ONLY the code, inside a single python code block, no prose.
