@@ -77,6 +77,11 @@ async function handleUpload(file) {
     chatThread.appendChild(welcome);
     welcome.querySelector("h1").textContent = "Dataset loaded";
     welcome.querySelector("p").textContent = `Ask a question about ${data.filename}.`;
+    const welcomeChar = document.getElementById("welcomeChar");
+    if (welcomeChar) {
+      welcomeChar.classList.add("is-happy");
+      setTimeout(() => welcomeChar.classList.remove("is-happy"), 550);
+    }
 
     dashboardCache = null;
     if (!dashboardView.hidden) loadDashboard();
@@ -98,6 +103,10 @@ function addUserMessage(question) {
   scrollToBottom();
 }
 
+function characterHTML(id, extraClass = "") {
+  return `<div class="char small ${extraClass}" id="${id}"><div class="char-eyes"><span class="char-eye"></span><span class="char-eye"></span></div></div>`;
+}
+
 function addTypingIndicator() {
   const id = `msg-${++msgCounter}`;
   const row = document.createElement("div");
@@ -105,7 +114,7 @@ function addTypingIndicator() {
   row.id = id;
   row.innerHTML = `
     <div class="chat-bubble agent">
-      <div class="agent-header"><span class="mini-orb"></span><span class="agent-label">Thinking</span></div>
+      <div class="agent-header">${characterHTML(`${id}-char`, "is-thinking")}<span class="agent-label">Thinking</span></div>
       <div class="typing-dots"><span></span><span></span><span></span></div>
     </div>`;
   chatThread.appendChild(row);
@@ -146,9 +155,10 @@ function renderAgentMessage(rowId, data) {
     ? `<span class="retry-badge" title="The first attempt failed; this is the corrected version">fixed after retry</span>`
     : "";
 
+  const charId = `${rowId}-char`;
   row.innerHTML = `
     <div class="chat-bubble agent">
-      <div class="agent-header"><span class="mini-orb"></span><span class="agent-label">Answer</span>${retryBadge}</div>
+      <div class="agent-header">${characterHTML(charId, "is-happy")}<span class="agent-label">Answer</span>${retryBadge}</div>
       ${explanationHtml}
       ${renderResultBody(data, rowId)}
       <details class="code-block">
@@ -156,6 +166,11 @@ function renderAgentMessage(rowId, data) {
         <pre>${escapeHtml(data.code || "")}</pre>
       </details>
     </div>`;
+
+  const charEl = document.getElementById(charId);
+  if (charEl) {
+    setTimeout(() => charEl.classList.remove("is-happy"), 550);
+  }
 
   if (data.kind === "figure" && data.figure) {
     const el = document.getElementById(`chart-${rowId}`);

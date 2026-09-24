@@ -289,26 +289,80 @@ button, input { font-family: inherit; }
 }
 .welcome p { margin: 0; font-size: 0.94rem; }
 
-.orb {
+.char {
+  position: relative;
   width: 92px; height: 92px;
   margin: 0 auto 22px;
   border-radius: 50%;
+  flex-shrink: 0;
   background: radial-gradient(circle at 32% 28%, #eef7fe 0%, var(--accent) 55%, var(--accent-dark) 100%);
   box-shadow:
     0 22px 45px -12px rgba(47, 111, 237, 0.5),
     inset -12px -12px 26px rgba(10, 30, 70, 0.25),
     inset 10px 10px 20px rgba(255, 255, 255, 0.55);
-  animation: orb-float 4.5s ease-in-out infinite;
+  animation: char-float 4.5s ease-in-out infinite;
 }
-.orb.thinking { animation: orb-think 1.1s ease-in-out infinite; }
+.char.small {
+  width: 22px; height: 22px;
+  margin: 0;
+  box-shadow:
+    0 6px 12px -4px rgba(47, 111, 237, 0.5),
+    inset -3px -3px 7px rgba(10, 30, 70, 0.25),
+    inset 3px 3px 5px rgba(255, 255, 255, 0.55);
+}
 
-@keyframes orb-float {
+.char-eyes {
+  position: absolute;
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  gap: 22%;
+}
+
+.char-eye {
+  width: 16%;
+  aspect-ratio: 1;
+  min-width: 2.5px;
+  background: #0f1b30;
+  border-radius: 50%;
+  animation: char-blink 4.2s ease-in-out infinite;
+}
+.char-eye:nth-child(2) { animation-delay: 0.12s; }
+
+@keyframes char-float {
   0%, 100% { transform: translateY(0) scale(1); }
   50% { transform: translateY(-9px) scale(1.03); }
 }
-@keyframes orb-think {
+@keyframes char-blink {
+  0%, 88%, 100% { transform: scaleY(1); }
+  92% { transform: scaleY(0.12); }
+}
+
+/* thinking: faster pulse, eyes squint and glance side to side */
+.char.is-thinking { animation: char-think 1.1s ease-in-out infinite; }
+.char.is-thinking .char-eye { animation: char-squint 1.1s ease-in-out infinite; }
+@keyframes char-think {
   0%, 100% { transform: scale(1); filter: brightness(1); }
-  50% { transform: scale(1.12); filter: brightness(1.15); }
+  50% { transform: scale(1.1); filter: brightness(1.15); }
+}
+@keyframes char-squint {
+  0%, 100% { transform: scaleY(0.55) translateX(0); }
+  50% { transform: scaleY(0.55) translateX(25%); }
+}
+
+/* answering: a quick happy bounce with wide eyes, then settles back to idle */
+.char.is-happy { animation: char-bounce 0.5s ease; }
+.char.is-happy .char-eye { animation: char-widen 0.5s ease; }
+@keyframes char-bounce {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.18) translateY(-4px); }
+  100% { transform: scale(1); }
+}
+@keyframes char-widen {
+  0% { transform: scaleY(1); }
+  35% { transform: scaleY(1.4); }
+  100% { transform: scaleY(1); }
 }
 
 .chat-row { display: flex; }
@@ -346,12 +400,6 @@ button, input { font-family: inherit; }
   display: flex;
   align-items: center;
   gap: 8px;
-}
-.mini-orb {
-  width: 20px; height: 20px;
-  border-radius: 50%;
-  flex-shrink: 0;
-  background: radial-gradient(circle at 32% 28%, #eef7fe 0%, var(--accent) 55%, var(--accent-dark) 100%);
 }
 .agent-label {
   font-size: 0.72rem;
