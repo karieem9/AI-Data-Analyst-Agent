@@ -8,6 +8,7 @@ import pandas as pd
 import agent
 from charts import auto_chart
 from forecasting import ForecastError, forecast
+from llm import SYSTEM_PROMPT
 from sandbox import run_safely
 
 daily = pd.read_csv("sample_daily_sales.csv")
@@ -128,6 +129,37 @@ def test_agent_shows_forecast_error_without_retry():
     print(f"PASS: agent shows the reason, no retry -> {payload['metric']}")
 
 
+def test_code_patterns_from_real_model_runs():
+    """Regressions from testing with the real model: the code gpt-4o-mini
+    writes once the prompt covers these cases, run through the sandbox.
+    Before the fix it answered "per year" as missing data, passed 3 for
+    "next 3 months" on daily data, and made up a 'date' column."""
+    for rule in ('"next 3 months" is\n  90', "Never answer it as missing data",
+                 "(the data has no date column)"):
+        assert rule in SYSTEM_PROMPT, f"prompt lost the rule: {rule}"
+
+    months = pd.date_range("1949-01-01", periods=144, freq="MS")
+    flights = pd.DataFrame({"year": months.year, "month": months.strftime("%B"),
+                            "passengers": np.arange(144) + 100})
+    no_dates = pd.DataFrame({"price": np.linspace(5, 50, 100)})
+    cases = [
+        (flights, "result = forecast(df.groupby('year')['passengers'].sum())", "Can't forecast yearly"),
+        (no_dates, "result = forecast(df['price'], 30)", "needs a date column"),
+    ]
+    for data, code, fragment in cases:
+        try:
+            run_safely(code, data)
+        except ForecastError as e:
+            assert fragment in str(e), e
+            print(f"PASS: {code} -> {e}")
+            continue
+        raise AssertionError(f"{code}: expected ForecastError")
+
+    out = run_safely("result = forecast(df.groupby('date')['revenue'].sum(), 90)", daily)
+    assert out["forecast"].notna().sum() == 14 and out.attrs["forecast"]["notes"]
+    print("PASS: 'next 3 months' on daily data -> 90 periods, capped to 14 with a note")
+
+
 if __name__ == "__main__":
     test_daily_forecast_shape_and_range()
     test_daily_forecast_keeps_weekly_pattern()
@@ -138,4 +170,5 @@ if __name__ == "__main__":
     test_duplicate_dates_ask_the_llm_to_aggregate()
     test_sandbox_and_chart()
     test_agent_shows_forecast_error_without_retry()
+    test_code_patterns_from_real_model_runs()
     print("\nAll forecasting tests passed.")

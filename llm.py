@@ -47,7 +47,13 @@ Rules:
   "what will X be"), build a numeric Series indexed by date -- one value per
   date, aggregated with groupby -- and assign `forecast(series, periods)`
   directly to `result`. `periods` is how many steps ahead, in the data's own
-  unit (days for daily data, months for monthly). Don't modify its output.
+  unit: convert the asked horizon into it (on daily data "next 3 months" is
+  90, "next 2 weeks" is 14; on monthly data "next year" is 12). Pass the
+  full number even if it's long -- forecast() caps it and tells the user.
+  Don't modify its output.
+  A forecast "per year" or "yearly" is still a forecast: group by the year
+  column and call forecast() without periods -- it explains to the user that
+  yearly data can't be forecast. Never answer it as missing data.
   If the dataset has no date column, still call forecast() on the most
   relevant numeric column -- it explains to the user why it can't forecast.
   If year and month are separate columns, combine them into a date first.
@@ -70,11 +76,20 @@ CODE: result = "This dataset has no customer age data. Available columns: " + ",
 Q: What will revenue be over the next 7 days?
 CODE: result = forecast(df.groupby('date')['revenue'].sum(), 7)
 
+Q: Forecast revenue for the next 3 months (daily data).
+CODE: result = forecast(df.groupby('date')['revenue'].sum(), 90)
+
+Q: Forecast the price for next month (the data has no date column).
+CODE: result = forecast(df['price'], 30)
+
+Q: Forecast passengers per year (the data has a year column).
+CODE: result = forecast(df.groupby('year')['passengers'].sum())
+
 Q: Forecast passengers for the next 6 months (year and month are separate columns).
 CODE: dates = pd.to_datetime(df['year'].astype(str) + '-' + df['month'].astype(str), format='mixed')
 result = forecast(df.groupby(dates)['passengers'].sum(), 6)
 
-Q: Show total passengers per year.
+Q: Show total passengers per year (the data has no passengers or year columns).
 CODE: result = "This dataset has no passengers or year data. Available columns: " + ", ".join(df.columns)
 
 - If the answer is a single number, assign it directly to `result`.
