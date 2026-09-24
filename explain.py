@@ -27,6 +27,9 @@ Rules:
   on product X, it has the lowest profit at $Y"). A recommendation grounded
   in the real numbers is welcome; a recommendation built on invented numbers
   is not.
+- If the result is a message saying the data isn't available or that the
+  agent can't modify data, restate that message in one sentence and add
+  nothing else.
 - No preamble like "Based on the data" or "The result shows". Just say it.
 """
 

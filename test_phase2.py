@@ -21,6 +21,9 @@ questions = [
     # false-positive as a refusal case too, which then caused the
     # explanation step to hallucinate a fake narrative to compensate.
     "What should I do to increase revenue?",
+    # Regression guard: questions about data the dataset doesn't have used
+    # to get the "can't modify data" refusal instead of "not in the data".
+    "Show total passengers per year",
 ]
 
 for q in questions:

@@ -33,6 +33,10 @@ Rules:
   and worst performers) and assign it to `result`. Do not write the
   recommendation yourself; just surface the numbers a recommendation would be
   based on.
+- If the question asks about something the dataset doesn't contain (no
+  column in the profile matches it), don't guess and don't use the
+  modify-data refusal. Assign a short string to `result` saying what is
+  missing and listing the available columns.
 
 Examples:
 Q: Why did revenue drop last month?
@@ -43,6 +47,9 @@ CODE: result = df.groupby('product_id')['profit'].sum().sort_values()
 
 Q: Delete all rows where revenue is 0.
 CODE: result = "This agent can only answer questions, not modify data."
+
+Q: What is the average customer age?
+CODE: result = "This dataset has no customer age data. Available columns: " + ", ".join(df.columns)
 
 - If the answer is a single number, assign it directly to `result`.
 - If the answer is a table, assign a DataFrame or Series to `result`.
