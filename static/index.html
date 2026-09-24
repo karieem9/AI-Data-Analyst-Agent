@@ -42,6 +42,11 @@
   </aside>
 
   <main class="chat-main">
+    <div class="view-tabs" role="tablist">
+      <button type="button" class="view-tab active" data-view="chat" role="tab" aria-selected="true">Chat</button>
+      <button type="button" class="view-tab" data-view="dashboard" role="tab" aria-selected="false">Dashboard</button>
+    </div>
+
     <div class="chat-thread" id="chatThread">
       <div class="welcome" id="welcome">
         <div class="orb"></div>
@@ -54,9 +59,14 @@
       <input type="text" id="questionInput" placeholder="Upload a dataset to get started" autocomplete="off" disabled>
       <button type="submit" id="sendBtn" disabled>Ask</button>
     </form>
+
+    <div class="dashboard-view" id="dashboardView" hidden>
+      <p class="dashboard-empty" id="dashboardEmpty">Upload a dataset to see its dashboard.</p>
+      <div class="dashboard-grid" id="dashboardGrid"></div>
+    </div>
   </main>
 
-  <aside class="history-panel">
+  <aside class="history-panel" id="historyPanel">
     <div class="history-head">History</div>
     <input type="text" id="historySearch" placeholder="Search questions" class="history-search">
     <div class="history-list" id="historyList">

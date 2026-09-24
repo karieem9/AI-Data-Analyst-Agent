@@ -1,9 +1,12 @@
+import json
+
 import pandas as pd
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from agent import answer_question
+from dashboard import build_dashboard
 from profiling import profile_dataframe, profile_to_text
 
 app = FastAPI(title="AI Data Analyst Agent")
@@ -56,6 +59,14 @@ async def ask(req: AskRequest):
 
     STATE["history"].append(payload)
     return payload
+
+
+@app.get("/api/dashboard")
+async def dashboard():
+    if STATE["df"] is None:
+        raise HTTPException(400, "Upload a dataset first.")
+    charts = build_dashboard(STATE["df"])
+    return [{"title": c["title"], "figure": json.loads(c["figure"].to_json())} for c in charts]
 
 
 @app.get("/api/history")

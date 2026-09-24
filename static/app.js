@@ -17,9 +17,18 @@ const profileList = document.getElementById("profileList");
 const historyList = document.getElementById("historyList");
 const historyEmpty = document.getElementById("historyEmpty");
 const historySearch = document.getElementById("historySearch");
+const historyPanel = document.getElementById("historyPanel");
+
+const viewTabs = document.querySelectorAll(".view-tab");
+const dashboardView = document.getElementById("dashboardView");
+const dashboardEmpty = document.getElementById("dashboardEmpty");
+const dashboardGrid = document.getElementById("dashboardGrid");
+const composer = document.getElementById("composerForm");
 
 let historyData = [];
 let msgCounter = 0;
+let dashboardCache = null; // invalidated on every new upload
+let dashboardChartCounter = 0;
 
 function escapeHtml(str) {
   const div = document.createElement("div");
@@ -68,6 +77,9 @@ async function handleUpload(file) {
     chatThread.appendChild(welcome);
     welcome.querySelector("h1").textContent = "Dataset loaded";
     welcome.querySelector("p").textContent = `Ask a question about ${data.filename}.`;
+
+    dashboardCache = null;
+    if (!dashboardView.hidden) loadDashboard();
   } catch (err) {
     datasetEmpty.querySelector("p").textContent = err.message;
   }
@@ -229,3 +241,77 @@ historyList.addEventListener("click", (e) => {
   // Simple affordance: re-ask isn't needed, just scroll the thread into view.
   chatThread.scrollTop = 0;
 });
+
+// ---------- dashboard ----------
+
+function switchView(view) {
+  viewTabs.forEach(tab => {
+    const active = tab.dataset.view === view;
+    tab.classList.toggle("active", active);
+    tab.setAttribute("aria-selected", String(active));
+  });
+
+  const isDashboard = view === "dashboard";
+  chatThread.hidden = isDashboard;
+  composer.hidden = isDashboard;
+  dashboardView.hidden = !isDashboard;
+  historyPanel.hidden = isDashboard;
+
+  if (isDashboard) loadDashboard();
+}
+
+viewTabs.forEach(tab => tab.addEventListener("click", () => switchView(tab.dataset.view)));
+
+async function loadDashboard() {
+  if (dashboardCache) {
+    renderDashboard(dashboardCache);
+    return;
+  }
+
+  dashboardEmpty.hidden = true;
+  dashboardGrid.innerHTML = `<p class="dashboard-loading">Building charts...</p>`;
+
+  try {
+    const res = await fetch("/api/dashboard");
+    const data = await res.json();
+    if (!res.ok) {
+      dashboardGrid.innerHTML = "";
+      dashboardEmpty.hidden = false;
+      dashboardEmpty.textContent = data.detail || "Upload a dataset to see its dashboard.";
+      return;
+    }
+    dashboardCache = data;
+    renderDashboard(data);
+  } catch (err) {
+    dashboardGrid.innerHTML = `<p class="dashboard-loading">Network error: ${escapeHtml(err.message)}</p>`;
+  }
+}
+
+function renderDashboard(charts) {
+  if (!charts || charts.length === 0) {
+    dashboardGrid.innerHTML = "";
+    dashboardEmpty.hidden = false;
+    dashboardEmpty.textContent = "Nothing to chart in this dataset yet.";
+    return;
+  }
+
+  dashboardEmpty.hidden = true;
+  dashboardGrid.innerHTML = charts.map((c, i) => `
+    <div class="dashboard-card">
+      <p class="dashboard-card-title">${escapeHtml(c.title)}</p>
+      <div class="dashboard-chart" id="dash-chart-${i}"></div>
+    </div>
+  `).join("");
+
+  charts.forEach((c, i) => {
+    const el = document.getElementById(`dash-chart-${i}`);
+    if (!el) return;
+    Plotly.newPlot(el, c.figure.data, {
+      ...c.figure.layout,
+      margin: { t: 10, r: 16, l: 44, b: 40 },
+      paper_bgcolor: "rgba(0,0,0,0)",
+      plot_bgcolor: "rgba(0,0,0,0)",
+      font: { family: "Plus Jakarta Sans, sans-serif", color: "#142a4c", size: 11 },
+    }, { responsive: true, displayModeBar: false });
+  });
+}
