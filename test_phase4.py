@@ -48,10 +48,19 @@ edge_cases = {
     "scalar": 26230,
     "none": None,
     "wide categories (60 unique)": pd.Series(range(60), index=[f"item_{i}" for i in range(60)]),
+    # Regression guard: a single-point "trend" used to become a broken
+    # line chart -- Plotly has no range to compute an axis from with only
+    # one point, so it auto-generates a nonsensical sub-millisecond-tick
+    # range around it. Found via "total revenue per month" on data that
+    # only spans one month (one groupby bucket = one row).
+    "single date-indexed row": pd.Series([26230], index=pd.Index(["2026-06"], name="date"), name="revenue"),
 }
 for label, val in edge_cases.items():
     kind, payload = auto_chart(val)
     print(f"{label}: KIND={kind}")
+
+assert auto_chart(edge_cases["single date-indexed row"])[0] == "metric", \
+    "a single-point result must never become a figure"
 
 # Export the figures to one HTML file for a visual look in the browser.
 with open("phase4_preview.html", "w", encoding="utf-8") as f:

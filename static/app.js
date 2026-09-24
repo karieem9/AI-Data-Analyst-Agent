@@ -17,9 +17,18 @@ const profileList = document.getElementById("profileList");
 const historyList = document.getElementById("historyList");
 const historyEmpty = document.getElementById("historyEmpty");
 const historySearch = document.getElementById("historySearch");
+const historyPanel = document.getElementById("historyPanel");
+
+const viewTabs = document.querySelectorAll(".view-tab");
+const dashboardView = document.getElementById("dashboardView");
+const dashboardEmpty = document.getElementById("dashboardEmpty");
+const dashboardGrid = document.getElementById("dashboardGrid");
+const composer = document.getElementById("composerForm");
 
 let historyData = [];
 let msgCounter = 0;
+let dashboardCache = null; // invalidated on every new upload
+let dashboardChartCounter = 0;
 
 function escapeHtml(str) {
   const div = document.createElement("div");
@@ -68,6 +77,14 @@ async function handleUpload(file) {
     chatThread.appendChild(welcome);
     welcome.querySelector("h1").textContent = "Dataset loaded";
     welcome.querySelector("p").textContent = `Ask a question about ${data.filename}.`;
+    const welcomeChar = document.getElementById("welcomeChar");
+    if (welcomeChar) {
+      welcomeChar.classList.add("is-happy");
+      setTimeout(() => welcomeChar.classList.remove("is-happy"), 550);
+    }
+
+    dashboardCache = null;
+    if (!dashboardView.hidden) loadDashboard();
   } catch (err) {
     datasetEmpty.querySelector("p").textContent = err.message;
   }
@@ -86,6 +103,10 @@ function addUserMessage(question) {
   scrollToBottom();
 }
 
+function characterHTML(id, extraClass = "") {
+  return `<div class="char small ${extraClass}" id="${id}"><div class="char-eyes"><span class="char-eye"></span><span class="char-eye"></span></div></div>`;
+}
+
 function addTypingIndicator() {
   const id = `msg-${++msgCounter}`;
   const row = document.createElement("div");
@@ -93,7 +114,7 @@ function addTypingIndicator() {
   row.id = id;
   row.innerHTML = `
     <div class="chat-bubble agent">
-      <div class="agent-header"><span class="mini-orb"></span><span class="agent-label">Thinking</span></div>
+      <div class="agent-header">${characterHTML(`${id}-char`, "is-thinking")}<span class="agent-label">Thinking</span></div>
       <div class="typing-dots"><span></span><span></span><span></span></div>
     </div>`;
   chatThread.appendChild(row);
@@ -130,9 +151,14 @@ function renderAgentMessage(rowId, data) {
     ? `<div class="explanation-text">${escapeHtml(data.explanation)}</div>`
     : (data.explanation_error ? `<div class="agent-error">${escapeHtml(data.explanation_error)}</div>` : "");
 
+  const retryBadge = data.attempts > 1
+    ? `<span class="retry-badge" title="The first attempt failed; this is the corrected version">fixed after retry</span>`
+    : "";
+
+  const charId = `${rowId}-char`;
   row.innerHTML = `
     <div class="chat-bubble agent">
-      <div class="agent-header"><span class="mini-orb"></span><span class="agent-label">Answer</span></div>
+      <div class="agent-header">${characterHTML(charId, "is-happy")}<span class="agent-label">Answer</span>${retryBadge}</div>
       ${explanationHtml}
       ${renderResultBody(data, rowId)}
       <details class="code-block">
@@ -140,6 +166,11 @@ function renderAgentMessage(rowId, data) {
         <pre>${escapeHtml(data.code || "")}</pre>
       </details>
     </div>`;
+
+  const charEl = document.getElementById(charId);
+  if (charEl) {
+    setTimeout(() => charEl.classList.remove("is-happy"), 550);
+  }
 
   if (data.kind === "figure" && data.figure) {
     const el = document.getElementById(`chart-${rowId}`);
@@ -225,3 +256,115 @@ historyList.addEventListener("click", (e) => {
   // Simple affordance: re-ask isn't needed, just scroll the thread into view.
   chatThread.scrollTop = 0;
 });
+
+// ---------- dashboard ----------
+
+function switchView(view) {
+  viewTabs.forEach(tab => {
+    const active = tab.dataset.view === view;
+    tab.classList.toggle("active", active);
+    tab.setAttribute("aria-selected", String(active));
+  });
+
+  const isDashboard = view === "dashboard";
+  chatThread.hidden = isDashboard;
+  composer.hidden = isDashboard;
+  dashboardView.hidden = !isDashboard;
+  historyPanel.hidden = isDashboard;
+
+  if (isDashboard) loadDashboard();
+}
+
+viewTabs.forEach(tab => tab.addEventListener("click", () => switchView(tab.dataset.view)));
+
+async function loadDashboard() {
+  if (dashboardCache) {
+    renderDashboard(dashboardCache);
+    return;
+  }
+
+  dashboardEmpty.hidden = true;
+  dashboardGrid.innerHTML = `<p class="dashboard-loading">Building charts...</p>`;
+
+  try {
+    const res = await fetch("/api/dashboard");
+    const data = await res.json();
+    if (!res.ok) {
+      dashboardGrid.innerHTML = "";
+      dashboardEmpty.hidden = false;
+      dashboardEmpty.textContent = data.detail || "Upload a dataset to see its dashboard.";
+      return;
+    }
+    dashboardCache = data;
+    renderDashboard(data);
+  } catch (err) {
+    dashboardGrid.innerHTML = `<p class="dashboard-loading">Network error: ${escapeHtml(err.message)}</p>`;
+  }
+}
+
+const DASHBOARD_SECTION_TITLES = {
+  quality: "Data quality — before you clean it",
+  overview: "Overview",
+};
+
+function dashboardCardHTML(card, chartId) {
+  const severityClass = card.severity ? `severity-${card.severity}` : "";
+  let body = "";
+  if (card.type === "figure") {
+    body = `<div class="dashboard-chart" id="${chartId}"></div>`;
+  } else if (card.type === "stat") {
+    body = `<p class="dashboard-stat-value">${escapeHtml(card.value)}</p>`;
+  } else if (card.type === "list") {
+    body = `<ul class="dashboard-issue-list">${card.items.map(i => `<li>${escapeHtml(i)}</li>`).join("")}</ul>`;
+  }
+  return `<div class="dashboard-card ${severityClass}"><p class="dashboard-card-title">${escapeHtml(card.title)}</p>${body}</div>`;
+}
+
+function renderDashboard(cards) {
+  if (!cards || cards.length === 0) {
+    dashboardGrid.innerHTML = "";
+    dashboardEmpty.hidden = false;
+    dashboardEmpty.textContent = "Nothing to chart in this dataset yet.";
+    return;
+  }
+
+  dashboardEmpty.hidden = true;
+
+  const sections = [];
+  const toPlot = [];
+  let chartIndex = 0;
+
+  cards.forEach((card) => {
+    let section = sections.find(s => s.key === card.section);
+    if (!section) {
+      section = { key: card.section, cardsHtml: [] };
+      sections.push(section);
+    }
+    if (card.type === "figure") {
+      const chartId = `dash-chart-${chartIndex++}`;
+      section.cardsHtml.push(dashboardCardHTML(card, chartId));
+      toPlot.push({ id: chartId, figure: card.figure });
+    } else {
+      section.cardsHtml.push(dashboardCardHTML(card));
+    }
+  });
+
+  dashboardGrid.innerHTML = sections.map(s => `
+    <section>
+      <h3 class="dashboard-section-title">${escapeHtml(DASHBOARD_SECTION_TITLES[s.key] || s.key)}</h3>
+      <div class="dashboard-grid">${s.cardsHtml.join("")}</div>
+    </section>
+  `).join("");
+
+  toPlot.forEach(({ id, figure }) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    Plotly.newPlot(el, figure.data, {
+      ...figure.layout,
+      margin: { t: 10, r: 16, l: 44, b: 40 },
+      paper_bgcolor: "rgba(0,0,0,0)",
+      plot_bgcolor: "rgba(0,0,0,0)",
+      font: { family: "Plus Jakarta Sans, sans-serif", color: "#142a4c", size: 11 },
+    }, { responsive: true, displayModeBar: false });
+  });
+}

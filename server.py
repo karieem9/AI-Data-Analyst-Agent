@@ -4,14 +4,27 @@ import pandas as pd
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
+from starlette.middleware.base import BaseHTTPMiddleware
 
-from charts import auto_chart
-from explain import explain_result
-from llm import generate_code, is_false_refusal
+from agent import answer_question
+from dashboard import build_dashboard
 from profiling import profile_dataframe, profile_to_text
-from sandbox import UnsafeCodeError, run_safely
 
 app = FastAPI(title="AI Data Analyst Agent")
+
+
+class NoCacheMiddleware(BaseHTTPMiddleware):
+    """This is a local tool whose static files change often during
+    development; without this, browsers can cache them by heuristic (no
+    Cache-Control header is sent otherwise) and silently keep serving a
+    stale UI after an update."""
+    async def dispatch(self, request, call_next):
+        response = await call_next(request)
+        response.headers["Cache-Control"] = "no-store"
+        return response
+
+
+app.add_middleware(NoCacheMiddleware)
 
 # Single-user local tool: one global dataset + history, no session management.
 STATE = {"df": None, "profile_text": None, "filename": None, "history": []}
@@ -54,44 +67,27 @@ async def ask(req: AskRequest):
     if STATE["df"] is None:
         raise HTTPException(400, "Upload a dataset first.")
 
-    df = STATE["df"]
-
     try:
-        code = generate_code(req.question, STATE["profile_text"])
+        payload = answer_question(req.question, STATE["df"], STATE["profile_text"])
     except Exception as e:
         raise HTTPException(502, f"Couldn't reach the model: {e}")
 
-    payload = {"question": req.question, "code": code, "error": None}
-
-    try:
-        result = run_safely(code, df)
-        if is_false_refusal(req.question, result):
-            columns = ", ".join(map(str, df.columns))
-            result = f"This dataset doesn't have the data to answer that. Available columns: {columns}"
-    except UnsafeCodeError as e:
-        payload["error"] = f"Rejected for safety: {e}"
-    except TimeoutError as e:
-        payload["error"] = str(e)
-    except Exception as e:
-        payload["error"] = f"{type(e).__name__}: {e}"
-
-    if payload["error"] is None:
-        kind, chart_payload = auto_chart(result)
-        payload["kind"] = kind
-        if kind == "figure":
-            payload["figure"] = json.loads(chart_payload.to_json())
-        elif kind == "table":
-            payload["table"] = chart_payload.reset_index().fillna("").to_dict(orient="records")
-        else:
-            payload["metric"] = str(chart_payload)
-        try:
-            payload["explanation"] = explain_result(req.question, result)
-        except Exception as e:
-            payload["explanation"] = None
-            payload["explanation_error"] = f"Couldn't generate an explanation: {e}"
-
     STATE["history"].append(payload)
     return payload
+
+
+@app.get("/api/dashboard")
+async def dashboard():
+    if STATE["df"] is None:
+        raise HTTPException(400, "Upload a dataset first.")
+    cards = build_dashboard(STATE["df"])
+    out = []
+    for c in cards:
+        card = {k: v for k, v in c.items() if k != "figure"}
+        if c["type"] == "figure":
+            card["figure"] = json.loads(c["figure"].to_json())
+        out.append(card)
+    return out
 
 
 @app.get("/api/history")

@@ -75,14 +75,30 @@ def extract_code(text: str) -> str:
     return match.group(1).strip() if match else text.strip()
 
 
-def generate_code(question: str, profile_text: str) -> str:
+def generate_code(
+    question: str,
+    profile_text: str,
+    previous_code: str | None = None,
+    previous_error: str | None = None,
+) -> str:
+    """Ask the model for code. If previous_code/previous_error are given, the
+    model sees its own failed attempt and the exact error, and is asked to
+    fix it -- a real self-correction turn, not a fresh guess."""
+    messages = [
+        {"role": "system", "content": SYSTEM_PROMPT.format(profile=profile_text)},
+        {"role": "user", "content": question},
+    ]
+    if previous_code is not None and previous_error is not None:
+        messages.append({"role": "assistant", "content": f"```python\n{previous_code}\n```"})
+        messages.append({
+            "role": "user",
+            "content": f"That failed:\n{previous_error}\n\nFix it. Return only the corrected code block.",
+        })
+
     response = client.chat.completions.create(
         model=MODEL,
         temperature=0,
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT.format(profile=profile_text)},
-            {"role": "user", "content": question},
-        ],
+        messages=messages,
     )
     return extract_code(response.choices[0].message.content)
 
