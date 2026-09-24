@@ -130,9 +130,13 @@ function renderAgentMessage(rowId, data) {
     ? `<div class="explanation-text">${escapeHtml(data.explanation)}</div>`
     : (data.explanation_error ? `<div class="agent-error">${escapeHtml(data.explanation_error)}</div>` : "");
 
+  const retryBadge = data.attempts > 1
+    ? `<span class="retry-badge" title="The first attempt failed; this is the corrected version">fixed after retry</span>`
+    : "";
+
   row.innerHTML = `
     <div class="chat-bubble agent">
-      <div class="agent-header"><span class="mini-orb"></span><span class="agent-label">Answer</span></div>
+      <div class="agent-header"><span class="mini-orb"></span><span class="agent-label">Answer</span>${retryBadge}</div>
       ${explanationHtml}
       ${renderResultBody(data, rowId)}
       <details class="code-block">

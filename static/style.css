@@ -275,6 +275,15 @@ button, input { font-family: inherit; }
   text-transform: uppercase;
   color: var(--ink-faint);
 }
+.retry-badge {
+  font-size: 0.66rem;
+  font-weight: 600;
+  color: var(--accent-dark);
+  background: var(--accent-soft);
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  margin-left: auto;
+}
 
 .typing-dots { display: flex; gap: 4px; padding: 4px 0; }
 .typing-dots span {
