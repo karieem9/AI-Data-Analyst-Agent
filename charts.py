@@ -51,6 +51,13 @@ def _chart_from_series(series: pd.Series):
     if series.empty:
         return "table", series.to_frame(name="value")
 
+    if len(series) == 1:
+        # A "chart" with one point isn't a chart -- it's a number. This
+        # also sidesteps a real Plotly bug: a single-point line chart has
+        # no range to compute an axis from, so it auto-generates a
+        # nonsensical sub-millisecond-tick range around that one point.
+        return "metric", series.iloc[0]
+
     label = series.name or "value"
 
     if looks_like_dates(series.index):
@@ -71,6 +78,9 @@ def _chart_from_dataframe(df: pd.DataFrame):
 
     if len(df.columns) == 1:
         return _chart_from_series(df.iloc[:, 0])
+
+    if len(df) == 1:
+        return "table", df
 
     numeric_cols = [c for c in df.columns if pd.api.types.is_numeric_dtype(df[c])]
     date_cols = [c for c in df.columns if c not in numeric_cols and looks_like_dates(df[c])]
