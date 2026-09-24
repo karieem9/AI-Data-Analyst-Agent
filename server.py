@@ -4,12 +4,27 @@ import pandas as pd
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from agent import answer_question
 from dashboard import build_dashboard
 from profiling import profile_dataframe, profile_to_text
 
 app = FastAPI(title="AI Data Analyst Agent")
+
+
+class NoCacheMiddleware(BaseHTTPMiddleware):
+    """This is a local tool whose static files change often during
+    development; without this, browsers can cache them by heuristic (no
+    Cache-Control header is sent otherwise) and silently keep serving a
+    stale UI after an update."""
+    async def dispatch(self, request, call_next):
+        response = await call_next(request)
+        response.headers["Cache-Control"] = "no-store"
+        return response
+
+
+app.add_middleware(NoCacheMiddleware)
 
 # Single-user local tool: one global dataset + history, no session management.
 STATE = {"df": None, "profile_text": None, "filename": None, "history": []}

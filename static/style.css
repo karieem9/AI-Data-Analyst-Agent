@@ -20,6 +20,12 @@
 
 * { box-sizing: border-box; }
 
+/* The hidden attribute must always win, even over an element's own
+   `display: flex` rule elsewhere -- without this, [hidden] and an
+   author-stylesheet display rule of equal specificity is a source-order
+   coin flip, not a reliable hide. */
+[hidden] { display: none !important; }
+
 html, body { height: 100%; }
 
 body {
