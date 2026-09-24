@@ -2,7 +2,7 @@ import json
 
 import pandas as pd
 
-from charts import auto_chart
+from charts import auto_chart, normalize_dates
 from explain import explain_result
 from forecasting import ForecastError
 from llm import generate_code, is_false_refusal
@@ -57,6 +57,7 @@ def answer_question(question: str, df: pd.DataFrame, profile_text: str) -> dict:
         columns = ", ".join(map(str, df.columns))
         result = f"This dataset doesn't have the data to answer that. Available columns: {columns}"
 
+    result = normalize_dates(result)
     kind, chart_payload = auto_chart(result)
     payload["kind"] = kind
     if kind == "figure":

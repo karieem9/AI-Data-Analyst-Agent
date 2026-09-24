@@ -305,6 +305,17 @@ SPACINGS = [("D", 1, 1), ("W", 6, 8), ("M", 28, 31), ("Q", 89, 92), ("Y", 365, 3
 MIN_REGULAR_SHARE = 0.6  # of gaps that must match the spacing; the rest are missing dates
 
 
+def parse_dates(values) -> pd.Series:
+    """Parse a column of dates the way forecast() does, working out whether
+    they're day-first (05-02-2010 is 5 Feb). Exposed to generated code and
+    used by the charts, so filtering, plotting and forecasting agree."""
+    s = pd.Series(values)
+    if pd.api.types.is_datetime64_any_dtype(s):
+        return s
+    parsed = _parse_date_strings(pd.Index(s.astype(str)))
+    return pd.Series(parsed, index=s.index, name=s.name)
+
+
 def _parse_date_strings(values: pd.Index) -> pd.DatetimeIndex:
     """Parse date strings, working out whether they're day-first. Read
     month-first, "05-02-2010, 12-02-2010, 19-02-2010" (weekly, day-first)

@@ -19,7 +19,7 @@ and the profile below. Write Python code that computes the answer to the user's 
 question and assigns the final answer to a variable named `result`.
 
 Rules:
-- Only use the names `pd`, `df`, and `forecast`, already provided. No imports.
+- Only use the names `pd`, `df`, `forecast`, and `parse_dates`, already provided. No imports.
 - No file, network, or system access of any kind.
 - `df` is read-only: never reassign it, never use inplace=True, and never call
   anything that modifies it (drop, update, sort_values inplace, etc.). Only
@@ -43,12 +43,18 @@ Rules:
   column in the profile matches it), that is NOT a refusal case. Don't guess.
   Assign a short string to `result` saying what is missing and listing the
   available columns.
+- To parse a date column, use `parse_dates(df['date'])` instead of
+  pd.to_datetime: it detects day-first formats like 05-02-2010.
+- "Last month", "last week", "this year" and similar mean relative to the
+  latest date in the data, not today: take the latest period present in the
+  data and filter to it. Answer with the number for that period.
 - For a question about the future (forecast, predict, next week/month,
   "what will X be"), build a numeric Series indexed by date -- one value per
   date, aggregated with groupby -- and assign `forecast(series, periods)`
   directly to `result`. `periods` is how many steps ahead, in the data's own
   unit: convert the asked horizon into it (on daily data "next 3 months" is
-  90, "next 2 weeks" is 14; on monthly data "next year" is 12). Pass the
+  90, "next 2 weeks" is 14; on weekly data "next 8 weeks" is 8; on monthly
+  data "next year" is 12). Pass the
   full number even if it's long -- forecast() caps it and tells the user.
   Don't modify its output.
   A forecast "per year" or "yearly" is still a forecast: group by the year
@@ -72,6 +78,10 @@ CODE: result = "This agent can only answer questions, not modify data."
 
 Q: What is the average customer age?
 CODE: result = "This dataset has no customer age data. Available columns: " + ", ".join(df.columns)
+
+Q: What was the total revenue last month?
+CODE: months = parse_dates(df['date']).dt.to_period('M')
+result = df.loc[months == months.max(), 'revenue'].sum()
 
 Q: What will revenue be over the next 7 days?
 CODE: result = forecast(df.groupby('date')['revenue'].sum(), 7)

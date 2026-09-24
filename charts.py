@@ -2,7 +2,7 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 
-from forecasting import is_forecast_frame
+from forecasting import is_forecast_frame, parse_dates
 
 MAX_BAR_CATEGORIES = 40
 
@@ -31,6 +31,26 @@ def looks_like_dates(values) -> bool:
     except (ValueError, TypeError):
         return False
     return parsed.notna().mean() > 0.8
+
+
+def normalize_dates(result):
+    """A Series/DataFrame indexed by date strings (a groupby on a raw date
+    column) comes back in string order, and "01-04-2011" reads as January
+    to anyone who doesn't know it's day-first. Swap in real, sorted dates
+    so the chart and the explanation both see the right timeline."""
+    if not isinstance(result, (pd.Series, pd.DataFrame)) or is_forecast_frame(result):
+        return result
+    idx = result.index
+    if isinstance(idx, pd.MultiIndex) or not (pd.api.types.is_object_dtype(idx) or pd.api.types.is_string_dtype(idx)):
+        return result
+    if len(idx) < 2 or not looks_like_dates(idx):
+        return result
+    dates = parse_dates(idx)
+    if dates.isna().any():
+        return result
+    out = result.copy()
+    out.index = pd.DatetimeIndex(dates.values, name=idx.name)
+    return out.sort_index()
 
 
 def auto_chart(result):
@@ -65,8 +85,11 @@ def _chart_from_series(series: pd.Series):
     label = series.name or "value"
 
     if looks_like_dates(series.index):
-        x = pd.to_datetime(series.index, errors="coerce", format="mixed")
-        fig = px.line(x=x, y=series.values, labels={"x": series.index.name or "date", "y": label})
+        # Parse day-first dates correctly and sort: a groupby on date
+        # strings like "05-02-2010" comes back in string order.
+        x = parse_dates(series.index).values
+        order = x.argsort()
+        fig = px.line(x=x[order], y=series.values[order], labels={"x": series.index.name or "date", "y": label})
         return "figure", fig
 
     if series.nunique() <= MAX_BAR_CATEGORIES and not pd.api.types.is_numeric_dtype(series.index):
@@ -92,7 +115,7 @@ def _chart_from_dataframe(df: pd.DataFrame):
 
     if date_cols and numeric_cols:
         plot_df = df.copy()
-        plot_df[date_cols[0]] = pd.to_datetime(plot_df[date_cols[0]], errors="coerce", format="mixed")
+        plot_df[date_cols[0]] = parse_dates(plot_df[date_cols[0]])
         fig = px.line(plot_df.sort_values(date_cols[0]), x=date_cols[0], y=numeric_cols[0])
         return "figure", fig
 

@@ -5,7 +5,7 @@ import threading
 import pandas as pd
 import plotly.express as px
 
-from forecasting import forecast
+from forecasting import forecast, parse_dates
 
 FORBIDDEN_NAMES = {
     "open", "exec", "eval", "compile", "__import__", "input", "breakpoint",
@@ -83,7 +83,7 @@ def run_safely(code: str, df: pd.DataFrame, timeout: int = 5):
     if not safe:
         raise UnsafeCodeError(reason)
 
-    scope = {"pd": pd, "df": df.copy(), "px": px, "forecast": forecast}
+    scope = {"pd": pd, "df": df.copy(), "px": px, "forecast": forecast, "parse_dates": parse_dates}
     outcome = {}
 
     def _target():
