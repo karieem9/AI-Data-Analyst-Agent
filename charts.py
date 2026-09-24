@@ -2,6 +2,8 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 
+from forecasting import is_forecast_frame
+
 MAX_BAR_CATEGORIES = 40
 
 
@@ -40,6 +42,8 @@ def auto_chart(result):
         return "figure", result
     if isinstance(result, pd.Series):
         return _chart_from_series(result)
+    if is_forecast_frame(result):
+        return "figure", forecast_chart(result)
     if isinstance(result, pd.DataFrame):
         return _chart_from_dataframe(result)
     if result is None:
@@ -97,3 +101,23 @@ def _chart_from_dataframe(df: pd.DataFrame):
         return "figure", fig
 
     return "table", df
+
+
+def forecast_chart(frame: pd.DataFrame) -> go.Figure:
+    """History as a solid line, the forecast dashed after it, and the
+    10%-90% range as a shaded band around the forecast."""
+    history = frame["actual"].dropna()
+    future = frame.dropna(subset=["forecast"])
+    # Start the forecast line at the last real point so the two connect.
+    x_fc = [history.index[-1], *future.index]
+    fig = go.Figure([
+        go.Scatter(x=future.index, y=future["upper"], mode="lines", line={"width": 0},
+                   showlegend=False, hoverinfo="skip"),
+        go.Scatter(x=future.index, y=future["lower"], mode="lines", line={"width": 0},
+                   fill="tonexty", fillcolor="rgba(99, 110, 250, 0.2)", name="likely range (10-90%)"),
+        go.Scatter(x=history.index, y=history.values, mode="lines", name="actual"),
+        go.Scatter(x=x_fc, y=[history.iloc[-1], *future["forecast"]], mode="lines",
+                   line={"dash": "dash"}, name="forecast"),
+    ])
+    fig.update_layout(xaxis_title=frame.index.name or "date", hovermode="x unified")
+    return fig

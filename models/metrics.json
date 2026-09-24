@@ -1,0 +1,59 @@
+{
+  "W": {
+    "series": 359,
+    "horizon": 13,
+    "model": {
+      "sMAPE": 9.10488614609635,
+      "MASE": 2.3687120670289943
+    },
+    "naive": {
+      "sMAPE": 9.161286913981998,
+      "MASE": 2.777294993197484
+    },
+    "seasonal_naive": {
+      "sMAPE": 14.516870171610156,
+      "MASE": 9.57798647934269
+    },
+    "interval_coverage": 0.7666595243196914,
+    "beats_baselines": true,
+    "improvement_vs_best_baseline_%": 14.7
+  },
+  "D": {
+    "series": 4227,
+    "horizon": 14,
+    "model": {
+      "sMAPE": 3.129645747366081,
+      "MASE": 3.275554457776765
+    },
+    "naive": {
+      "sMAPE": 3.0452517800636607,
+      "MASE": 3.2784242959709204
+    },
+    "seasonal_naive": {
+      "sMAPE": 3.741925098238183,
+      "MASE": 4.128192711512719
+    },
+    "interval_coverage": 0.7817094190408598,
+    "beats_baselines": true,
+    "improvement_vs_best_baseline_%": 0.1
+  },
+  "M": {
+    "series": 48000,
+    "horizon": 18,
+    "model": {
+      "sMAPE": 13.058886004666707,
+      "MASE": 0.9869540493295498
+    },
+    "naive": {
+      "sMAPE": 15.256483534162774,
+      "MASE": 1.2051289868992616
+    },
+    "seasonal_naive": {
+      "sMAPE": 15.98828156281687,
+      "MASE": 1.259717038281995
+    },
+    "interval_coverage": 0.7676030092592593,
+    "beats_baselines": true,
+    "improvement_vs_best_baseline_%": 18.1
+  }
+}

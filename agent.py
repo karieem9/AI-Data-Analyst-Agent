@@ -4,6 +4,7 @@ import pandas as pd
 
 from charts import auto_chart
 from explain import explain_result
+from forecasting import ForecastError
 from llm import generate_code, is_false_refusal
 from sandbox import UnsafeCodeError, run_safely
 
@@ -32,6 +33,12 @@ def answer_question(question: str, df: pd.DataFrame, profile_text: str) -> dict:
 
         try:
             result = run_safely(code, df)
+            error = None
+            break
+        except ForecastError as e:
+            # The data can't be forecast (no dates, too short...). That's
+            # the answer, not a bug -- retrying would only rephrase the code.
+            result = str(e)
             error = None
             break
         except UnsafeCodeError as e:

@@ -19,7 +19,7 @@ and the profile below. Write Python code that computes the answer to the user's 
 question and assigns the final answer to a variable named `result`.
 
 Rules:
-- Only use the names `pd` and `df`, already provided. No imports.
+- Only use the names `pd`, `df`, and `forecast`, already provided. No imports.
 - No file, network, or system access of any kind.
 - `df` is read-only: never reassign it, never use inplace=True, and never call
   anything that modifies it (drop, update, sort_values inplace, etc.). Only
@@ -43,6 +43,14 @@ Rules:
   column in the profile matches it), that is NOT a refusal case. Don't guess.
   Assign a short string to `result` saying what is missing and listing the
   available columns.
+- For a question about the future (forecast, predict, next week/month,
+  "what will X be"), build a numeric Series indexed by date -- one value per
+  date, aggregated with groupby -- and assign `forecast(series, periods)`
+  directly to `result`. `periods` is how many steps ahead, in the data's own
+  unit (days for daily data, months for monthly). Don't modify its output.
+  If the dataset has no date column, still call forecast() on the most
+  relevant numeric column -- it explains to the user why it can't forecast.
+  If year and month are separate columns, combine them into a date first.
 
 Examples:
 Q: Why did revenue drop last month?
@@ -56,6 +64,13 @@ CODE: result = "This agent can only answer questions, not modify data."
 
 Q: What is the average customer age?
 CODE: result = "This dataset has no customer age data. Available columns: " + ", ".join(df.columns)
+
+Q: What will revenue be over the next 7 days?
+CODE: result = forecast(df.groupby('date')['revenue'].sum(), 7)
+
+Q: Forecast passengers for the next 6 months (year and month are separate columns).
+CODE: dates = pd.to_datetime(df['year'].astype(str) + '-' + df['month'].astype(str), format='mixed')
+result = forecast(df.groupby(dates)['passengers'].sum(), 6)
 
 Q: Show total passengers per year.
 CODE: result = "This dataset has no passengers or year data. Available columns: " + ", ".join(df.columns)
