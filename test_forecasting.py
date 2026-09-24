@@ -59,6 +59,16 @@ def test_monthly_and_weekly():
     print("PASS: monthly and weekly forecasts land on the right dates")
 
 
+def test_day_first_dates():
+    # Walmart-style weekly dates written day-first ("05-02-2010"). Read
+    # month-first they look scattered and used to be rejected as irregular.
+    weeks = pd.date_range("2010-02-05", periods=60, freq="7D")
+    s = pd.Series(np.linspace(1e6, 1.5e6, 60), index=weeks.strftime("%d-%m-%Y"))
+    out = forecast(s, 4).dropna(subset=["forecast"])
+    assert out.index[0] == weeks[-1] + pd.Timedelta(days=7), out.index
+    print(f"PASS: day-first dates -> weekly forecast from {out.index[0].date()}")
+
+
 def test_unsuitable_data():
     titanic_like = pd.Series(np.random.default_rng(0).uniform(5, 80, 100), name="Fare")
     expect_forecast_error(titanic_like, "no date", "no date column")
@@ -122,6 +132,7 @@ if __name__ == "__main__":
     test_daily_forecast_shape_and_range()
     test_daily_forecast_keeps_weekly_pattern()
     test_monthly_and_weekly()
+    test_day_first_dates()
     test_unsuitable_data()
     test_long_horizon_is_capped()
     test_duplicate_dates_ask_the_llm_to_aggregate()

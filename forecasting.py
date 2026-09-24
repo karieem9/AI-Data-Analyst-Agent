@@ -277,7 +277,7 @@ def _parse_dates(series: pd.Series) -> tuple[pd.DatetimeIndex, np.ndarray]:
             )
         raise no_dates
     else:
-        dates = pd.DatetimeIndex(pd.to_datetime(idx.astype(str), errors="coerce", format="mixed"))
+        dates = _parse_date_strings(idx.astype(str))
         if dates.isna().mean() > 0.2:
             raise no_dates
     if dates.tz is not None:
@@ -299,6 +299,24 @@ def _parse_dates(series: pd.Series) -> tuple[pd.DatetimeIndex, np.ndarray]:
 # (name, smallest gap, largest gap in days) for each spacing we recognize.
 SPACINGS = [("D", 1, 1), ("W", 6, 8), ("M", 28, 31), ("Q", 89, 92), ("Y", 365, 366)]
 MIN_REGULAR_SHARE = 0.6  # of gaps that must match the spacing; the rest are missing dates
+
+
+def _parse_date_strings(values: pd.Index) -> pd.DatetimeIndex:
+    """Parse date strings, working out whether they're day-first. Read
+    month-first, "05-02-2010, 12-02-2010, 19-02-2010" (weekly, day-first)
+    turns into scattered dates and would be rejected as irregular. Keep
+    whichever reading parses more values, then gives more regular gaps."""
+    def score(dates):
+        valid = dates.dropna().sort_values().unique()
+        if len(valid) < 3:
+            return (len(valid), 0.0)
+        gaps = np.diff(valid.values).astype("timedelta64[s]").astype(float) / 86400
+        regular = max(np.mean((gaps >= lo - 0.01) & (gaps <= hi + 0.01)) for _, lo, hi in SPACINGS)
+        return (len(valid), regular)
+
+    month_first = pd.DatetimeIndex(pd.to_datetime(values, errors="coerce", format="mixed"))
+    day_first = pd.DatetimeIndex(pd.to_datetime(values, errors="coerce", format="mixed", dayfirst=True))
+    return day_first if score(day_first) > score(month_first) else month_first
 
 
 def _infer_frequency(dates: pd.DatetimeIndex) -> tuple[str, str]:

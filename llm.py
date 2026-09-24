@@ -51,6 +51,8 @@ Rules:
   If the dataset has no date column, still call forecast() on the most
   relevant numeric column -- it explains to the user why it can't forecast.
   If year and month are separate columns, combine them into a date first.
+  Otherwise group by the date column as it is, without pd.to_datetime:
+  forecast() parses dates itself, including day-first formats like 31-12-2024.
 
 Examples:
 Q: Why did revenue drop last month?
