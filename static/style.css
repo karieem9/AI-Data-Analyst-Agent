@@ -11,6 +11,10 @@
   --accent-soft: #dbebfc;
   --danger: #c94a4a;
   --danger-bg: #fbeaea;
+  --ok: #3b8a5e;
+  --ok-bg: #e5f3ea;
+  --warn: #b6791f;
+  --warn-bg: #fbf0dc;
   --radius-lg: 22px;
   --radius-md: 14px;
   --radius-pill: 999px;
@@ -240,6 +244,21 @@ button, input { font-family: inherit; }
   padding: 40px 0;
 }
 
+.dashboard-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+}
+
+.dashboard-section-title {
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin: 0 0 12px;
+}
+
 .dashboard-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
@@ -249,11 +268,14 @@ button, input { font-family: inherit; }
 .dashboard-card {
   background: var(--card);
   border: 1px solid var(--card-border);
+  border-left: 4px solid var(--card-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-soft);
   padding: 16px 18px 6px;
   animation: msg-in 0.25s ease both;
 }
+.dashboard-card.severity-ok { border-left-color: var(--ok); }
+.dashboard-card.severity-warn { border-left-color: var(--warn); }
 
 .dashboard-card-title {
   font-size: 0.82rem;
@@ -263,6 +285,24 @@ button, input { font-family: inherit; }
 }
 
 .dashboard-chart { width: 100%; min-height: 230px; }
+
+.dashboard-stat-value {
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  margin: 4px 0 14px;
+}
+.severity-ok .dashboard-stat-value { color: var(--ok); }
+.severity-warn .dashboard-stat-value { color: var(--warn); }
+
+.dashboard-issue-list {
+  margin: 4px 0 14px;
+  padding-left: 1.2em;
+  font-size: 0.86rem;
+  color: var(--warn);
+  font-weight: 600;
+}
+.dashboard-issue-list li { margin-bottom: 4px; }
 
 .chat-thread {
   flex: 1;

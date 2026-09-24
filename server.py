@@ -80,8 +80,14 @@ async def ask(req: AskRequest):
 async def dashboard():
     if STATE["df"] is None:
         raise HTTPException(400, "Upload a dataset first.")
-    charts = build_dashboard(STATE["df"])
-    return [{"title": c["title"], "figure": json.loads(c["figure"].to_json())} for c in charts]
+    cards = build_dashboard(STATE["df"])
+    out = []
+    for c in cards:
+        card = {k: v for k, v in c.items() if k != "figure"}
+        if c["type"] == "figure":
+            card["figure"] = json.loads(c["figure"].to_json())
+        out.append(card)
+    return out
 
 
 @app.get("/api/history")

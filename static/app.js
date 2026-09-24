@@ -302,8 +302,26 @@ async function loadDashboard() {
   }
 }
 
-function renderDashboard(charts) {
-  if (!charts || charts.length === 0) {
+const DASHBOARD_SECTION_TITLES = {
+  quality: "Data quality — before you clean it",
+  overview: "Overview",
+};
+
+function dashboardCardHTML(card, chartId) {
+  const severityClass = card.severity ? `severity-${card.severity}` : "";
+  let body = "";
+  if (card.type === "figure") {
+    body = `<div class="dashboard-chart" id="${chartId}"></div>`;
+  } else if (card.type === "stat") {
+    body = `<p class="dashboard-stat-value">${escapeHtml(card.value)}</p>`;
+  } else if (card.type === "list") {
+    body = `<ul class="dashboard-issue-list">${card.items.map(i => `<li>${escapeHtml(i)}</li>`).join("")}</ul>`;
+  }
+  return `<div class="dashboard-card ${severityClass}"><p class="dashboard-card-title">${escapeHtml(card.title)}</p>${body}</div>`;
+}
+
+function renderDashboard(cards) {
+  if (!cards || cards.length === 0) {
     dashboardGrid.innerHTML = "";
     dashboardEmpty.hidden = false;
     dashboardEmpty.textContent = "Nothing to chart in this dataset yet.";
@@ -311,18 +329,38 @@ function renderDashboard(charts) {
   }
 
   dashboardEmpty.hidden = true;
-  dashboardGrid.innerHTML = charts.map((c, i) => `
-    <div class="dashboard-card">
-      <p class="dashboard-card-title">${escapeHtml(c.title)}</p>
-      <div class="dashboard-chart" id="dash-chart-${i}"></div>
-    </div>
+
+  const sections = [];
+  const toPlot = [];
+  let chartIndex = 0;
+
+  cards.forEach((card) => {
+    let section = sections.find(s => s.key === card.section);
+    if (!section) {
+      section = { key: card.section, cardsHtml: [] };
+      sections.push(section);
+    }
+    if (card.type === "figure") {
+      const chartId = `dash-chart-${chartIndex++}`;
+      section.cardsHtml.push(dashboardCardHTML(card, chartId));
+      toPlot.push({ id: chartId, figure: card.figure });
+    } else {
+      section.cardsHtml.push(dashboardCardHTML(card));
+    }
+  });
+
+  dashboardGrid.innerHTML = sections.map(s => `
+    <section>
+      <h3 class="dashboard-section-title">${escapeHtml(DASHBOARD_SECTION_TITLES[s.key] || s.key)}</h3>
+      <div class="dashboard-grid">${s.cardsHtml.join("")}</div>
+    </section>
   `).join("");
 
-  charts.forEach((c, i) => {
-    const el = document.getElementById(`dash-chart-${i}`);
+  toPlot.forEach(({ id, figure }) => {
+    const el = document.getElementById(id);
     if (!el) return;
-    Plotly.newPlot(el, c.figure.data, {
-      ...c.figure.layout,
+    Plotly.newPlot(el, figure.data, {
+      ...figure.layout,
       margin: { t: 10, r: 16, l: 44, b: 40 },
       paper_bgcolor: "rgba(0,0,0,0)",
       plot_bgcolor: "rgba(0,0,0,0)",
