@@ -160,6 +160,29 @@ def test_code_patterns_from_real_model_runs():
     print("PASS: 'next 3 months' on daily data -> 90 periods, capped to 14 with a note")
 
 
+def test_models_load_with_windows_line_endings():
+    """A Windows checkout (core.autocrlf) gives the model files CRLF line
+    endings; LightGBM aborted the whole server on them."""
+    import tempfile
+    from pathlib import Path
+
+    import forecasting
+
+    with tempfile.TemporaryDirectory() as tmp:
+        for src in forecasting.MODELS_DIR.glob("forecast_W_*.txt"):
+            (Path(tmp) / src.name).write_bytes(src.read_bytes().replace(b"\n", b"\r\n"))
+        weeks = pd.date_range("2010-02-05", periods=60, freq="W-FRI")
+        series = pd.Series(1000 + 50 * np.sin(np.arange(60) / 4), index=weeks)
+        with patch.object(forecasting, "MODELS_DIR", Path(tmp)):
+            forecasting._load_models.cache_clear()
+            try:
+                out = forecast(series, 8)
+            finally:
+                forecasting._load_models.cache_clear()
+    assert out["forecast"].notna().sum() == 8
+    print("PASS: models with CRLF line endings load and forecast")
+
+
 if __name__ == "__main__":
     test_daily_forecast_shape_and_range()
     test_daily_forecast_keeps_weekly_pattern()
@@ -171,4 +194,5 @@ if __name__ == "__main__":
     test_sandbox_and_chart()
     test_agent_shows_forecast_error_without_retry()
     test_code_patterns_from_real_model_runs()
+    test_models_load_with_windows_line_endings()
     print("\nAll forecasting tests passed.")

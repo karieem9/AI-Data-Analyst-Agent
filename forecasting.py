@@ -139,7 +139,11 @@ def _load_models(freq: str) -> dict:
         path = model_path(freq, q)
         if not path.exists():
             raise ForecastError("The forecasting models are missing. Run `python training/train.py` first.")
-        boosters[q] = lgb.Booster(model_file=str(path))
+        # Read the text ourselves: a Windows checkout with core.autocrlf
+        # turns the model files' line endings into CRLF, which LightGBM
+        # can't parse -- it aborts the whole process, not just this call.
+        text = path.read_bytes().decode("utf-8").replace("\r\n", "\n")
+        boosters[q] = lgb.Booster(model_str=text)
     return boosters
 
 
