@@ -7,6 +7,11 @@ from openai import OpenAI
 load_dotenv()
 
 MODEL = "gpt-4o-mini"
+REFUSAL = "This agent can only answer questions, not modify data."
+# Words that make a refusal legitimate; without one, a refusal means the model
+# misread a missing-data question as a modify-data request.
+MODIFY_WORDS = ("delete", "remove", "edit", "overwrite", "insert", "update",
+                "save", "export", "modify", "change", "drop", "replace", "write")
 client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
 
 SYSTEM_PROMPT = """You are a data analyst agent. You are given a pandas DataFrame called `df` \
@@ -21,8 +26,9 @@ Rules:
   read from `df` to compute `result`.
 - Refuse ONLY if the question contains an explicit instruction to change what
   is stored: delete, remove, edit, overwrite, insert, update, or save/export
-  the data. For a refusal, assign a short string to `result` explaining you
-  can only answer questions, not modify data.
+  the data. For a refusal, assign exactly "This agent can only answer
+  questions, not modify data." to `result`. Never use that sentence for any
+  other reason -- in particular not when the data is simply missing.
 - A question about how a metric moved over time (drop, decrease, rise, fall,
   change, spike) is a normal analytical question, not a refusal case. Always
   write code to compute the answer for these.
@@ -34,9 +40,9 @@ Rules:
   recommendation yourself; just surface the numbers a recommendation would be
   based on.
 - If the question asks about something the dataset doesn't contain (no
-  column in the profile matches it), don't guess and don't use the
-  modify-data refusal. Assign a short string to `result` saying what is
-  missing and listing the available columns.
+  column in the profile matches it), that is NOT a refusal case. Don't guess.
+  Assign a short string to `result` saying what is missing and listing the
+  available columns.
 
 Examples:
 Q: Why did revenue drop last month?
@@ -50,6 +56,9 @@ CODE: result = "This agent can only answer questions, not modify data."
 
 Q: What is the average customer age?
 CODE: result = "This dataset has no customer age data. Available columns: " + ", ".join(df.columns)
+
+Q: Show total passengers per year.
+CODE: result = "This dataset has no passengers or year data. Available columns: " + ", ".join(df.columns)
 
 - If the answer is a single number, assign it directly to `result`.
 - If the answer is a table, assign a DataFrame or Series to `result`.
@@ -76,3 +85,9 @@ def generate_code(question: str, profile_text: str) -> str:
         ],
     )
     return extract_code(response.choices[0].message.content)
+
+
+def is_false_refusal(question: str, result) -> bool:
+    """True when the model refused a question that never asked to modify data."""
+    q = question.lower()
+    return isinstance(result, str) and result.strip() == REFUSAL and not any(w in q for w in MODIFY_WORDS)

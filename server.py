@@ -7,7 +7,7 @@ from pydantic import BaseModel
 
 from charts import auto_chart
 from explain import explain_result
-from llm import generate_code
+from llm import generate_code, is_false_refusal
 from profiling import profile_dataframe, profile_to_text
 from sandbox import UnsafeCodeError, run_safely
 
@@ -65,6 +65,9 @@ async def ask(req: AskRequest):
 
     try:
         result = run_safely(code, df)
+        if is_false_refusal(req.question, result):
+            columns = ", ".join(map(str, df.columns))
+            result = f"This dataset doesn't have the data to answer that. Available columns: {columns}"
     except UnsafeCodeError as e:
         payload["error"] = f"Rejected for safety: {e}"
     except TimeoutError as e:
